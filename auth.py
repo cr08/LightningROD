@@ -55,13 +55,16 @@ GUARD_URL = "https://api.mps.ford.com/api"
 SSO_URL = "https://sso.ci.ford.com"
 FORD_LOGIN_URL = "https://login.ford.com"
 
+cwd = os.getcwd()
+token_loc = cwd + "\\token.json"
+
 session = requests.Session()
 
 class FordPassAuthenticator:
     # Represents a Ford vehicle, with methods for status and issuing commands
 
     def __init__(
-        self, username, password, vin, region, save_token=False, config_location=""
+        self, username, password, vin, region, save_token=True, config_location=token_loc
     ):
         self.username = username
         self.password = password
@@ -79,10 +82,7 @@ class FordPassAuthenticator:
         adapter = HTTPAdapter(max_retries=retry)
         session.mount("http://", adapter)
         session.mount("https://", adapter)
-        if config_location == "":
-            self.token_location = "custom_components/fordpass/fordpass_token.txt"
-        else:
-            self.token_location = config_location
+        self.token_location = config_location
 
     def base64_url_encode(self, data):
         """Encode string to base64"""

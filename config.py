@@ -11,6 +11,9 @@ fordpass_region = "North America & Canada"
 # Vehicle VIN to log
 fordpass_vin = 'your_vin'
 
+veh_model = "vehicle model name"
+veh_year = "vehicle model year"
+
 # InfluxDB info
 influx_token = "your_API_token"
 influx_org = "org"
