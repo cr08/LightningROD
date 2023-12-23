@@ -49,26 +49,26 @@ region_lookup = {
     "North America & Canada": "71A3AD0A-CF46-4CCF-B473-FC7FE5BC4592",
 }
 
-def get_autonomic_token(ford_access_token):
-    """Get Autonomic API token from FordPass token"""
-    url = "https://accounts.autonomic.ai/v1/auth/oidc/token"
-    headers = {
-        "accept": "*/*",
-        "content-type": "application/x-www-form-urlencoded"
-    }
-    data = {
-        "subject_token": ford_access_token,
-        "subject_issuer": "fordpass",
-        "client_id": "fordpass-prod",
-        "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
-        "subject_token_type": "urn:ietf:params:oauth:token-type:jwt"
-    }
+# def get_autonomic_token(ford_access_token):
+#     """Get Autonomic API token from FordPass token"""
+#     url = "https://accounts.autonomic.ai/v1/auth/oidc/token"
+#     headers = {
+#         "accept": "*/*",
+#         "content-type": "application/x-www-form-urlencoded"
+#     }
+#     data = {
+#         "subject_token": ford_access_token,
+#         "subject_issuer": "fordpass",
+#         "client_id": "fordpass-prod",
+#         "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
+#         "subject_token_type": "urn:ietf:params:oauth:token-type:jwt"
+#     }
 
-    try:
-        response = requests.post(url, headers=headers, data=data, timeout=10)
-        response.raise_for_status()
-        autonomic_token_data = response.json()
-        return autonomic_token_data
+#     try:
+#         response = requests.post(url, headers=headers, data=data, timeout=10)
+#         response.raise_for_status()
+#         autonomic_token_data = response.json()
+#         return autonomic_token_data
 
     except requests.exceptions.HTTPError as errh:
         print(f"HTTP Error: {errh}")
@@ -237,7 +237,7 @@ if __name__ == "__main__":
         if VERBOSE:
             print("WARNING: json will contain sensitive information!")
     # Exchange Fordpass token for Autonomic Token
-    autonomic_token = get_autonomic_token(fpToken)
+    # autonomic_token = get_autonomic_token(fpToken)
     # Get vehicle status
     vehicle_status = get_vehicle_status(FP_VIN, autonomic_token["access_token"])
     # Get vehicle capabilities

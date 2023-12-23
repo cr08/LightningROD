@@ -1,6 +1,8 @@
 """Fordpass API Library"""
+from datetime import datetime
 import hashlib
 import json
+import sys
 import os
 import pathlib
 import random
@@ -12,6 +14,8 @@ import requests
 
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
+
+from config import veh_year, veh_model, fordpass_region
 
 defaultHeaders = {
     "Accept": "*/*",
@@ -50,10 +54,25 @@ locale_short_lookup = {
     "North America & Canada": "USA",
 }
 
+VIC_YEAR = veh_year
+VIC_MODEL = veh_model
+
+current_datetime = datetime.now().strftime("%Y%m%d_%H%M%S")
+if VIC_YEAR != "":
+    VIC_YEAR = VIC_YEAR.replace(" ", "_") + "-"
+if VIC_MODEL != "":
+    VIC_MODEL = VIC_MODEL.replace(" ", "_")
+else:
+    VIC_MODEL = "my"
+
 BASE_URL = "https://usapi.cv.ford.com/api"
 GUARD_URL = "https://api.mps.ford.com/api"
 SSO_URL = "https://sso.ci.ford.com"
 FORD_LOGIN_URL = "https://login.ford.com"
+AUTONOMIC_URL = "https://api.autonomic.ai/v1"
+AUTONOMIC_ACCOUNT_URL = "https://accounts.autonomic.ai/v1"
+
+NEW_API = True
 
 cwd = os.path.dirname(os.path.abspath(__file__))
 token_loc = os.path.join(cwd,"token.json")
@@ -349,3 +368,124 @@ class FordPassChargeLogsDownloader:
         with open(self.log_location, "w") as file:
             json.dump(existing_data, file, indent=4)
 
+    def get_status(self):
+        """Get status from Autonomics endpoint"""
+        params = {"lrdt": "01-01-1970 00:00:00"}
+
+        headers = {
+            **apiHeaders,
+            "auth-token": self.token,
+            "Application-Id": self.region,
+        }
+        # _LOGGER.debug("Status function before auto_token")
+        # _LOGGER.debug(self.auto_token)
+        # _LOGGER.debug(self.vin)
+
+        # _LOGGER.debug("Trying new vehicle API endpoint")
+        headers = {
+            **apiHeaders,
+            "authorization": f"Bearer {self.token}",
+            "Application-Id": fordpass_region,
+        }
+        r = session.get(
+            f"{AUTONOMIC_URL}/telemetry/sources/fordpass/vehicles/{self.vin}", params=params, headers=headers
+        )
+        # _LOGGER.debug(r.status_code)
+        return r
+    
+    def download_status(self):
+        """Get Vehicle status from API"""
+        # _LOGGER.debug("Getting Vehicle Status")
+        self.__acquire_token()
+
+        if NEW_API:
+            r = self.get_status()
+            # _LOGGER.debug("NEW API???")
+
+            if r.status_code == 200:
+                #_LOGGER.debug(r.text)
+                result = r.json()
+
+                return result
+            if r.status_code == 401:
+                self.auth()
+                response = self.get_status()
+                if response.status_code == 200:
+                    result = response.json()
+                    return result
+            if r.status_code == 403:
+                i = 0
+                while i < 3:
+                    # _LOGGER.debug(f"Retrying Vehicle endpoint attempt {i}")
+                    response = self.get_status()
+                    if response.status_code == 200:
+                        result = response.json()
+                        return result
+                    i += 1
+            response.raise_for_status()
+            vehicle_status_data = response.json()
+
+        status_filename = os.path.join(cwd, f"{VIC_YEAR}{VIC_MODEL}_chargelog_{current_datetime}{REDACTION_STATUS}.json")
+
+        with open(status_filename, "w") as file:
+            json.dump(vehicle_status_data, file, indent=4)
+
+        return vehicle_status_data
+
+def vehicle_cap(self):
+    """Make call to vehicles API"""
+    regionID = region_lookup[fordpass_region]
+    if fordpass_region == "Australia":
+        countryheader = "AUS"
+    elif fordpass_region == "North America & Canada":
+        countryheader = "USA"
+    elif fordpass_region == "UK&Europe":
+        countryheader = "GBR"
+    else:
+        countryheader = "USA"
+
+    headers = {
+        "Accept": "*/*",
+        "Accept-Language": "en-us",
+        "User-Agent": "FordPass/23 CFNetwork/1408.0.4 Darwin/22.5.0",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Content-Type": "application/json",
+        "Auth-Token": token,
+        "Application-Id": regionID,
+        "Countrycode": countryheader,
+        "Locale": "EN-US"
+    }
+
+    data = {
+        "dashboardRefreshRequest": "All"
+    }
+
+    # redaction_items = ["VIN", "vin", "vehicleImage"]
+
+    try:
+        response = requests.post(
+            f"https://api.mps.ford.com/api/expdashboard/v1/details/",
+            headers=headers,
+            data=json.dumps(data)
+        )
+        response.raise_for_status()
+        print("Got vehicle capabilities")
+        vehicleCap = response.json()
+        # if REDACTION:
+            # redact_json(vehicleCap, redaction_items)
+        return vehicleCap
+
+    except requests.exceptions.HTTPError as errh:
+        print(f"HTTP Error: {errh}")
+        # print("Trying refresh token")
+        # get_autonomic_token(fp_refresh)
+        return None
+    except requests.exceptions.ConnectionError as errc:
+        print(f"Error Connecting: {errc}")
+        sys.exit()
+    except requests.exceptions.Timeout as errt:
+        print(f"Timeout Error: {errt}")
+        sys.exit()
+    except requests.exceptions.RequestException as err:
+        print(f"Something went wrong: {err}")
+        sys.exit()
