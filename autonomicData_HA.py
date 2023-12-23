@@ -9,7 +9,7 @@ import requests
 from auth import FordPassAuthenticator
 from config import fordpass_username, fordpass_password, fordpass_vin, fordpass_region, veh_year, veh_model
 
-cwd = os.getcwd()
+cwd = os.path.dirname(os.path.abspath(__file__))
 
 # Add the details below
 # From a terminal in the /config/custom_components/fordpass folder run: python3 autonomicData.py
