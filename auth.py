@@ -55,7 +55,7 @@ GUARD_URL = "https://api.mps.ford.com/api"
 SSO_URL = "https://sso.ci.ford.com"
 FORD_LOGIN_URL = "https://login.ford.com"
 
-cwd = os.getcwd()
+cwd = os.path.dirname(os.path.abspath(__file__))
 token_loc = os.path.join(cwd,"token.json")
 
 session = requests.Session()
