@@ -56,7 +56,7 @@ SSO_URL = "https://sso.ci.ford.com"
 FORD_LOGIN_URL = "https://login.ford.com"
 
 cwd = os.getcwd()
-token_loc = cwd + "\\token.json"
+token_loc = os.path.join(cwd,"token.json")
 
 session = requests.Session()
 
